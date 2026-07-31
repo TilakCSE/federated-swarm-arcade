@@ -1,0 +1,17 @@
+# Dependencies (Ignores node_modules everywhere in the repo)
+node_modules/
+**/node_modules/
+
+# Next.js & Build outputs
+.next/
+out/
+build/
+dist/
+
+# Logs & Environment variables
+*.log
+.env*
+
+# OS & Misc
+.DS_Store
+*.pem
