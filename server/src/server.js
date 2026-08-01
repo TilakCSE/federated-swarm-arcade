@@ -10,6 +10,7 @@ const server = http.createServer(app);
 
 // Configure Socket.io with CORS to allow our Next.js client to connect
 const io = new Server(server, {
+    maxHttpBufferSize: 1e8,
     cors: {
         origin: "http://localhost:3000", // Next.js default port
         methods: ["GET", "POST"]
@@ -67,4 +68,34 @@ io.on('connection', async (socket) => {
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
     console.log(`Parameter Server actively listening on port ${PORT}`);
+});
+
+let globalSwarmPoints = 0; // Track the total swarm contribution
+
+io.on('connection', (socket) => {
+    console.log(`Node connected: ${socket.id}`);
+    
+    // Immediately sync the new client with the global score
+    socket.emit('swarm_points_update', globalSwarmPoints);
+
+    if (globalModelWeights) {
+        socket.emit('global_model_dispatch', globalModelWeights);
+        console.log(`Dispatched global model to ${socket.id}`);
+    }
+
+    socket.on('client_update', (serializedWeights) => {
+        console.log(`Received model update from ${socket.id}`);
+        socket.emit('update_acknowledged');
+    });
+
+    // NEW: Listen for game scores and broadcast the new total to everyone
+    socket.on('submit_score', (score) => {
+        globalSwarmPoints += score;
+        io.emit('swarm_points_update', globalSwarmPoints);
+        console.log(`Node ${socket.id} contributed ${score} points. Total Swarm: ${globalSwarmPoints}`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log(`Node disconnected: ${socket.id}`);
+    });
 });
